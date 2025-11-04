@@ -32,17 +32,51 @@ if uploaded_file is not None:
         # Limpa espaços em branco (início/fim) E normaliza espaços duplos/múltiplos para um único espaço.
         df.columns = df.columns.str.replace(r'\s+', ' ', regex=True).str.strip()
         # --- FIM DA ALTERAÇÃO 12 ---
-
-        # --- INÍCIO DA ALTERAÇÃO (Manter "Pedido") ---
-        # ALTERAÇÃO 3: FILTRAR COLUNAS INDESEJADAS
-        colunas_para_excluir = [
-            "Emitir", "Carga", "Plano Corte", "Obs Op", "Relato da Op", "N° do Proc", "N° O.P."
-            # Manter "Pedido" para a verificação
-        ]
-        # df_display é o nosso dataframe "limpo" original
-        df_display = df.drop(columns=colunas_para_excluir, errors='ignore')
-        # --- FIM DA ALTERAÇÃO ---
         
+        # --- INÍCIO DA ALTERAÇÃO (Seleção Dinâmica de Colunas) ---
+        
+        # 1. Define as colunas que SEMPRE queremos excluir por padrão (LISTA ATUALIZADA)
+        colunas_excluidas_padrao = [
+            "Emitir",
+            "Obs Op",
+            "Selec",
+            "Data desenvolvimento",
+            "Nº Proc.",
+            "Sit.",
+            "Nº Desenvolvimento",
+            "Sequência desenvolvimento",
+            "Bitola",
+            "Sub Grupo_1",
+            "Coleção",
+            "Modelagem",
+            "Ind. Terceiros",
+            "Data Cancelamento",
+            "Data Encerramento",
+            "Usuário Cancelou",
+            "Usuário Encerrou",
+            "BLOCO 2"
+        ]
+        
+        # 2. Pega todas as colunas disponíveis no 'df' original
+        todas_as_colunas = df.columns.tolist()
+        
+        # 3. Filtra a lista padrão para incluir apenas colunas que REALMENTE existem no 'df'
+        default_excluir = [col for col in colunas_excluidas_padrao if col in todas_as_colunas]
+        
+        # 4. Cria o widget multiselect dentro de um expander
+        with st.expander("Configurações Avançadas: Excluir Colunas da Análise"):
+            colunas_para_excluir_selecionadas = st.multiselect(
+                label="Selecione as colunas para excluir da visualização e análise:",
+                options=todas_as_colunas,
+                default=default_excluir,
+                help="Colunas selecionadas aqui serão removidas. Desmarque se precisar analisar alguma delas (ex: 'Pedido')."
+            )
+        
+        # 5. df_display é o nosso dataframe "limpo"
+        df_display = df.drop(columns=colunas_para_excluir_selecionadas, errors='ignore')
+        
+        # --- FIM DA ALTERAÇÃO ---
+
         # Copia o dataframe para aplicar filtros de exibição
         df_filtered = df_display.copy()
 
@@ -53,7 +87,10 @@ if uploaded_file is not None:
         col1, col2 = st.columns(2)
         
         with col1:
+            # --- INÍCIO DA ALTERAÇÃO (Verificar se colunas de data ainda existem) ---
+            # Pega as colunas disponíveis DEPOIS da exclusão
             colunas_disponiveis = ["Nenhuma"] + df_display.columns.tolist()
+            # --- FIM DA ALTERAÇÃO ---
             
             # --- INÍCIO DA ALTERAÇÃO (Filtro de Data Padrão) ---
             default_date_col = "Data Emissão"
@@ -79,7 +116,7 @@ if uploaded_file is not None:
                 if grupos_selecionados: 
                     df_filtered = df_filtered[df_filtered['Grupo'].isin(grupos_selecionados)]
             except KeyError:
-                st.error("Coluna 'Grupo' não encontrada no arquivo.")
+                st.info("Coluna 'Grupo' não encontrada (provavelmente foi excluída).")
         
         col3, col4 = st.columns(2)
         
@@ -111,7 +148,7 @@ if uploaded_file is not None:
                     )
 
                 except KeyError:
-                    st.error("Coluna 'Sub Grupo' não encontrada. O filtro condicional não pode ser aplicado.")
+                    st.info("Coluna 'Sub Grupo' não encontrada (provavelmente foi excluída).")
             
             # Filtro de Descrição (original)
             try:
@@ -122,7 +159,7 @@ if uploaded_file is not None:
                         df_filtered['Descrição do Produto'].str.contains(texto_descricao, case=False, na=False)
                     ]
             except KeyError:
-                st.error("Coluna 'Descrição do Produto' não encontrada no arquivo.")
+                st.info("Coluna 'Descrição do Produto' não encontrada (provavelmente foi excluída).")
         # --- FIM DA ALTERAÇÃO ---
         
         with col4:
@@ -189,7 +226,7 @@ if uploaded_file is not None:
                  st.warning(f"A coluna '{coluna_data}' não foi encontrada. As métricas de data não podem ser calculadas.")
 
         except KeyError:
-            st.warning("Colunas 'PLANEJAMENTO' ou 'PRODUCAO' não encontradas. Não foi possível calcular o peso total.")
+            st.warning("Colunas 'PLANEJAMENTO' ou 'PRODUCAO' não encontradas (provavelmente foram excluídas). Não foi possível calcular o peso total.")
         except Exception as e:
             st.error(f"Erro ao calcular o peso: {e}")
             
@@ -467,19 +504,15 @@ if uploaded_file is not None:
         if coluna_data == "Nenhuma":
             st.info("Para rodar esta análise, selecione a 'coluna de data (Emissão)' principal no topo da página.")
         
+        # --- INÍCIO DA ALTERAÇÃO (Verificar colunas DEPOIS da exclusão) ---
         elif 'Usuário Emitiu' not in df_display.columns:
-            # Mantida a verificação original
-            st.error("Erro na análise: A coluna 'Usuário Emitiu' não foi encontrada na planilha.")
+            st.error("Erro na análise: A coluna 'Usuário Emitiu' não foi encontrada (provavelmente foi excluída).")
         
-        # --- INÍCIO DA CORREÇÃO (Nome da coluna com ponto) ---
-        # NOVA VERIFICAÇÃO
         elif 'Dt. Término Prod.' not in df_display.columns:
-            st.error("Erro na análise: A coluna 'Dt. Término Prod.' é necessária, mas não foi encontrada na planilha.")
-        # --- FIM DA CORREÇÃO ---
+            st.error("Erro na análise: A coluna 'Dt. Término Prod.' é necessária, mas não foi encontrada (provavelmente foi excluída).")
             
-        # --- INÍCIO DA ALTERAÇÃO (Verificação "Pedido") ---
         elif 'Pedido' not in df_display.columns:
-            st.error("Erro na análise: A coluna 'Pedido' é necessária, mas não foi encontrada na planilha.")
+            st.error("Erro na análise: A coluna 'Pedido' é necessária, mas não foi encontrada (provavelmente foi excluída).")
         # --- FIM DA ALTERAÇÃO ---
             
         else:
@@ -532,7 +565,9 @@ if uploaded_file is not None:
                         pedidos_pendentes['Cliente'] != cliente_a_excluir
                     ]
                 else:
-                    st.info("Coluna 'Cliente' não encontrada. Não foi possível aplicar o filtro de exclusão para 'NOROACO'.")
+                    # Não é um erro, apenas informa se a coluna não existir (pois pode ter sido excluída)
+                    if 'Cliente' not in df.columns: # Verifica no 'df' original
+                         st.info("Coluna 'Cliente' não encontrada. Não foi possível aplicar o filtro de exclusão para 'NOROACO'.")
 
 
                 # --- INÍCIO DA ALTERAÇÃO (Separar em duas tabelas) ---
@@ -543,11 +578,20 @@ if uploaded_file is not None:
                 
                 # --- INÍCIO DA CORREÇÃO (Nome da coluna com ponto) ---
                 # 2. Configurações da Tabela (usadas por ambas)
-                colunas_alerta = ['Pedido', 'Status Pasta', 'Usuário Emitiu', coluna_data, 'Dt. Término Prod.'] 
-                if 'Cliente' in df_analise.columns:
+                # --- INÍCIO DA ALTERAÇÃO (Usar colunas que sobraram) ---
+                colunas_disponiveis_analise = df_display.columns.tolist()
+                
+                colunas_alerta = ['Pedido', 'Status Pasta', 'Usuário Emitiu', coluna_data, 'Dt. Término Prod.']
+                # Adiciona outras colunas dinamicamente se elas não foram excluídas
+                if 'Cliente' in colunas_disponiveis_analise:
                     colunas_alerta.append('Cliente')
-                if 'Descrição do Produto' in df_analise.columns:
+                if 'Descrição do Produto' in colunas_disponiveis_analise:
                     colunas_alerta.append('Descrição do Produto')
+                
+                # Garante que só vamos mostrar colunas que realmente existem
+                colunas_alerta = [col for col in colunas_alerta if col in colunas_disponiveis_analise or col == 'Status Pasta']
+                # --- FIM DA ALTERAÇÃO ---
+
                 
                 config_tabela_alerta = {
                     coluna_data: st.column_config.DatetimeColumn(
