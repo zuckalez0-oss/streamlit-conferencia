@@ -146,9 +146,11 @@ if uploaded_file is not None:
             # Converte a coluna de data principal
             df_filtered[coluna_data] = pd.to_datetime(df_filtered[coluna_data], errors='coerce')
             
-            # Converte a Dt. Término Prod (se existir) para a Análise 10
-            if 'Dt. Término Prod' in df_filtered.columns:
-                 df_filtered['Dt. Término Prod'] = pd.to_datetime(df_filtered['Dt. Término Prod'], errors='coerce')
+            # --- INÍCIO DA CORREÇÃO (Nome da coluna com ponto) ---
+            # Converte a Dt. Término Prod. (se existir) para a Análise 10
+            if 'Dt. Término Prod.' in df_filtered.columns:
+                 df_filtered['Dt. Término Prod.'] = pd.to_datetime(df_filtered['Dt. Término Prod.'], errors='coerce')
+            # --- FIM DA CORREÇÃO ---
 
 
         # --- Cálculo das 3 Métricas ---
@@ -338,12 +340,14 @@ if uploaded_file is not None:
                  label='Qtde Mat. Prima [KG]'
              )
         
-        # ALTERAÇÃO 14.3: Adiciona formatação de data para 'Dt. Término Prod'
-        if 'Dt. Término Prod' in df_filtered.columns:
-            column_config['Dt. Término Prod'] = st.column_config.DatetimeColumn(
-                label='Dt. Término Prod',
+        # --- INÍCIO DA CORREÇÃO (Nome da coluna com ponto) ---
+        # ALTERAÇÃO 14.3: Adiciona formatação de data para 'Dt. Término Prod.'
+        if 'Dt. Término Prod.' in df_filtered.columns:
+            column_config['Dt. Término Prod.'] = st.column_config.DatetimeColumn(
+                label='Dt. Término Prod.',
                 format="DD/MM/YYYY"
             )
+        # --- FIM DA CORREÇÃO ---
 
         # --- LÓGICA DE FILTRO E EXIBIÇÃO DA TABELA PRINCIPAL ---
         hoje_dt = pd.to_datetime(datetime.date.today()).normalize()
@@ -392,19 +396,19 @@ if uploaded_file is not None:
         st.divider()
         st.header("Verificação de Arquivos na Pasta")
         
-        # --- INÍCIO DA ALTERAÇÃO (Substituir .bat por .py) ---
+        # --- INÍCIO DA ALTERAÇÃO (Download .exe e Instruções Atualizadas) ---
         st.info("Para verificar os pedidos, você precisa de um script que lê sua pasta e gera o `lista_arquivos.txt`.")
         st.markdown("""
-        1.  Baixe o script Python (`.py`) abaixo.
-        2.  Execute o script (dê dois cliques).
-        3.  Uma janela aparecerá pedindo para você **selecionar a pasta** onde seus PDFs estão.
-        4.  O script criará o `lista_arquivos.txt` **dentro da pasta que você selecionou**.
-        5.  Carregue o arquivo `lista_arquivos.txt` abaixo.
+        1.  Baixe o executável (`.exe`) abaixo.
+        2.  Execute o arquivo (dê dois cliques). (Nota: O Windows pode exibir um aviso por ser um .exe baixado. Você pode precisar permitir a execução).
+        3.  Uma janela aparecerá pedindo para você **selecionar a pasta de ENTRADA** (onde seus PDFs estão).
+        4.  Em seguida, uma segunda janela pedirá para você **selecionar a pasta de SAÍDA** (onde o `lista_arquivos.txt` será salvo).
+        5.  Carregue o arquivo `lista_arquivos.txt` que foi salvo na pasta de saída.
         """)
         
         st.markdown("---")
         st.subheader("Baixar Script Gerador de Lista (GUI)")
-        st.info("Baixe e execute este script para gerar seu `lista_arquivos.txt` de forma fácil.")
+        st.info("Baixe e execute este programa para gerar seu `lista_arquivos.txt` de forma fácil.")
         
         # Conteúdo do script Python com GUI (Tkinter)
         python_script_content = """import tkinter as tk
@@ -413,62 +417,74 @@ import os
 
 def gerar_lista_de_arquivos():
     '''
-    Abre uma interface gráfica para o usuário selecionar uma pasta
-    e gera um 'lista_arquivos.txt' contendo todos os arquivos .pdf
-    encontrados nessa pasta.
+    Abre uma interface gráfica para o usuário selecionar uma pasta de ENTRADA (PDFs)
+    e uma pasta de SAÍDA (onde o .txt será salvo).
     '''
     # 1. Configura a janela principal (invisível)
     root = tk.Tk()
     root.withdraw() # Esconde a janela root principal
 
-    # 2. Abre a caixa de diálogo para selecionar a pasta
+    # 2. Abre a caixa de diálogo para selecionar a pasta de ENTRADA (PDFs)
     messagebox.showinfo(
-        "Gerador de Lista", 
-        "Por favor, selecione a pasta onde seus pedidos (arquivos .pdf) estão localizados."
+        "Gerador de Lista (Passo 1/2)", 
+        "Por favor, selecione a pasta de ENTRADA onde seus pedidos (arquivos .pdf) estão localizados."
     )
-    
-    directory_path = filedialog.askdirectory(title="Selecione a pasta dos Pedidos PDF")
+    input_directory_path = filedialog.askdirectory(title="Selecione a pasta dos Pedidos PDF (ENTRADA)")
 
-    # 3. Verifica se o usuário selecionou uma pasta
-    if directory_path:
-        try:
-            output_file = os.path.join(directory_path, "lista_arquivos.txt")
-            pdf_files = []
-            
-            # 4. Varre a pasta selecionada
-            for filename in os.listdir(directory_path):
-                # Procura por .pdf (ignorando maiúsculas/minúsculas)
-                if filename.lower().endswith('.pdf'):
-                    pdf_files.append(filename)
-            
-            # 5. Escreve os arquivos encontrados no .txt
-            with open(output_file, 'w', encoding='utf-8') as f:
-                for file in pdf_files:
-                    f.write(f"{file}\\n")
-            
-            # 6. Mostra mensagem de sucesso
-            messagebox.showinfo(
-                "Sucesso", 
-                f"'lista_arquivos.txt' foi criado com sucesso!\\n\\n"
-                f"{len(pdf_files)} arquivos PDF foram encontrados e listados.\\n\\n"
-                f"Pode fechar esta janela e carregar o arquivo no Streamlit."
-            )
-            
-        except Exception as e:
-            messagebox.showerror("Erro", f"Ocorreu um erro ao gerar o arquivo: {e}")
-    else:
-        # 7. Mostra mensagem se o usuário cancelar
-        messagebox.showinfo("Operação Cancelada", "Nenhuma pasta foi selecionada. A operação foi cancelada.")
+    # 3. Verifica se o usuário selecionou a pasta de entrada
+    if not input_directory_path:
+        messagebox.showinfo("Operação Cancelada", "Nenhuma pasta de entrada foi selecionada. A operação foi cancelada.")
+        return # Encerra a função
+
+    # 4. Abre a caixa de diálogo para selecionar a pasta de SAÍDA (Relatório .txt)
+    messagebox.showinfo(
+        "Gerador de Lista (Passo 2/2)", 
+        "Agora, selecione a pasta de SAÍDA onde o arquivo 'lista_arquivos.txt' deve ser salvo (ex: sua Área de Trabalho)."
+    )
+    output_directory_path = filedialog.askdirectory(title="Selecione a pasta para salvar o Relatório (SAÍDA)")
+
+    # 5. Verifica se o usuário selecionou a pasta de saída
+    if not output_directory_path:
+        messagebox.showinfo("Operação Cancelada", "Nenhuma pasta de saída foi selecionada. A operação foi cancelada.")
+        return # Encerra a função
+
+    # 6. Se ambas as pastas foram selecionadas, processa os arquivos
+    try:
+        output_file = os.path.join(output_directory_path, "lista_arquivos.txt")
+        pdf_files = []
+        
+        # 7. Varre a pasta de ENTRADA
+        for filename in os.listdir(input_directory_path):
+            # Procura por .pdf (ignorando maiúsculas/minúsculas)
+            if filename.lower().endswith('.pdf'):
+                pdf_files.append(filename)
+        
+        # 8. Escreve os arquivos encontrados no .txt na pasta de SAÍDA
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for file in pdf_files:
+                f.write(f"{file}\\n")
+        
+        # 9. Mostra mensagem de sucesso
+        messagebox.showinfo(
+            "Sucesso", 
+            f"'lista_arquivos.txt' foi criado com sucesso!\\n\\n"
+            f"{len(pdf_files)} arquivos PDF foram encontrados e listados.\\n\\n"
+            f"O arquivo foi salvo em: {output_file}\\n\\n"
+            f"Pode fechar esta janela e carregar o arquivo no Streamlit."
+        )
+        
+    except Exception as e:
+        messagebox.showerror("Erro", f"Ocorreu um erro ao gerar o arquivo: {e}")
 
 if __name__ == "__main__":
     gerar_lista_de_arquivos()
 """
         
         st.download_button(
-            label="Baixar Script Gerador de Lista (.py)",
+            label="Baixar Script Gerador de Lista (.exe)",
             data=python_script_content,
-            file_name="gerar_lista_gui.py",
-            mime="text/x-python" # Mime type para Python
+            file_name="gerador_lista_gui.exe",
+            mime="application/octet-stream" # Mime type para executável
         )
         st.markdown("---")
         # --- FIM DA ALTERAÇÃO ---
@@ -503,7 +519,7 @@ if __name__ == "__main__":
         
         st.divider() 
         # Título atualizado
-        st.header("Análise: Pedidos Pendentes (Emitidos antes de hoje E sem Dt. Término Prod)")
+        st.header("Análise: Pedidos Pendentes (Emitidos antes de hoje E sem Dt. Término Prod.)")
 
         if coluna_data == "Nenhuma":
             st.info("Para rodar esta análise, selecione a 'coluna de data (Emissão)' principal no topo da página.")
@@ -512,9 +528,11 @@ if __name__ == "__main__":
             # Mantida a verificação original
             st.error("Erro na análise: A coluna 'Usuário Emitiu' não foi encontrada na planilha.")
         
+        # --- INÍCIO DA CORREÇÃO (Nome da coluna com ponto) ---
         # NOVA VERIFICAÇÃO
-        elif 'Dt. Término Prod' not in df_display.columns:
-            st.error("Erro na análise: A coluna 'Dt. Término Prod' é necessária, mas não foi encontrada na planilha.")
+        elif 'Dt. Término Prod.' not in df_display.columns:
+            st.error("Erro na análise: A coluna 'Dt. Término Prod.' é necessária, mas não foi encontrada na planilha.")
+        # --- FIM DA CORREÇÃO ---
             
         # --- INÍCIO DA ALTERAÇÃO (Verificação "Pedido") ---
         elif 'Pedido' not in df_display.columns:
@@ -528,14 +546,17 @@ if __name__ == "__main__":
                 df_analise = df_display.copy()
                 # Coluna de EMISSÃO (selecionada no selectbox)
                 df_analise[coluna_data] = pd.to_datetime(df_analise[coluna_data], errors='coerce') 
+                
+                # --- INÍCIO DA CORREÇÃO (Nome da coluna com ponto) ---
                 # Coluna de TÉRMINO (para filtro .isna())
                 # Adicionamos 'errors='coerce'' aqui também por segurança
-                df_analise['Dt. Término Prod'] = pd.to_datetime(df_analise['Dt. Término Prod'], errors='coerce')
+                df_analise['Dt. Término Prod.'] = pd.to_datetime(df_analise['Dt. Término Prod.'], errors='coerce')
 
                 # CONDIÇÃO 1: Data de emissão anterior a hoje
                 condicao_emissao_antiga = (df_analise[coluna_data].dt.normalize() < hoje_dt)
                 # CONDIÇÃO 2: Data de término está vazia
-                condicao_termino_nula = df_analise['Dt. Término Prod'].isna()
+                condicao_termino_nula = df_analise['Dt. Término Prod.'].isna()
+                # --- FIM DA CORREÇÃO ---
                 
                 # Combinação das condições
                 condicao_final = condicao_emissao_antiga & condicao_termino_nula
@@ -577,8 +598,9 @@ if __name__ == "__main__":
                 pedidos_ausentes = pedidos_pendentes[pedidos_pendentes["Status Pasta"] == "Pedido Ausente"]
                 pedidos_na_pasta = pedidos_pendentes[pedidos_pendentes["Status Pasta"] == "Pedido na Pasta"]
                 
+                # --- INÍCIO DA CORREÇÃO (Nome da coluna com ponto) ---
                 # 2. Configurações da Tabela (usadas por ambas)
-                colunas_alerta = ['Pedido', 'Status Pasta', 'Usuário Emitiu', coluna_data, 'Dt. Término Prod'] 
+                colunas_alerta = ['Pedido', 'Status Pasta', 'Usuário Emitiu', coluna_data, 'Dt. Término Prod.'] 
                 if 'Cliente' in df_analise.columns:
                     colunas_alerta.append('Cliente')
                 if 'Descrição do Produto' in df_analise.columns:
@@ -589,18 +611,19 @@ if __name__ == "__main__":
                         label=coluna_data, # Label dinâmico da data de emissão
                         format="DD/MM/YYYY"
                     ),
-                    'Dt. Término Prod': st.column_config.DatetimeColumn(
-                        label='Dt. Término Prod', # Label fixo da data de término
+                    'Dt. Término Prod.': st.column_config.DatetimeColumn( # CORRIGIDO: Adicionado ponto
+                        label='Dt. Término Prod.', # CORRIGIDO: Adicionado ponto
                         format="DD/MM/YYYY"
                     )
                 }
+                # --- FIM DA CORREÇÃO ---
                 
                 # 3. Exibir Tabela de PEDIDOS AUSENTES (A MAIS IMPORTANTE)
                 st.subheader("Pedidos Ausentes na Pasta")
                 
                 if pedidos_ausentes.empty:
                     if uploaded_file_list: # Só mostra sucesso se a lista foi carregada
-                        st.success(f"Tudo ok! Nenhum pedido pendente **ausente da pasta** encontrado (emitido antes de {hoje_dt.strftime('%d/%m/%Y')} E sem Dt. Término Prod).")
+                        st.success(f"Tudo ok! Nenhum pedido pendente **ausente da pasta** encontrado (emitido antes de {hoje_dt.strftime('%d/%m/%Y')} E sem Dt. Término Prod.).")
                     else:
                         st.info("Carregue o arquivo 'lista_arquivos.txt' para verificar os pedidos ausentes.")
                 else:
