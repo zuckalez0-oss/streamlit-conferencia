@@ -8,6 +8,9 @@ import re # Importa regex para extrair números
 st.set_page_config(layout="wide")
 st.title('Ferramenta de Conferência de Dados')
 
+
+
+
 # --- INÍCIO DA ALTERAÇÃO (Constante para o Grupo) ---
 NOME_GRUPO_GALVANIZADO = "PERFIL GALVANIZADO" # Defina o nome exato do grupo aqui
 # --- FIM DA ALTERAÇÃO ---
@@ -596,7 +599,7 @@ if uploaded_file is not None:
                 config_tabela_alerta = {
                     coluna_data: st.column_config.DatetimeColumn(
                         label=coluna_data, # Label dinâmico da data de emissão
-                        format="DD/MM/YYYY"
+                        format="DD/MM/YYYY HH:mm"
                     ),
                     'Dt. Término Prod.': st.column_config.DatetimeColumn( # CORRIGIDO: Adicionado ponto
                         label='Dt. Término Prod.', # CORRIGIDO: Adicionado ponto
@@ -643,4 +646,3 @@ if uploaded_file is not None:
 
     except Exception as e:
         st.error(f"Ocorreu um erro ao ler o arquivo: {e}")
-
